@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# A script that displays listening ports and
+# the PID and name of the program to which each socket belongs.
+
+# Check if the script is run as root
+if [[ $EUID -ne 0 ]]; then
+    echo "This script needs to be run as root to show PID and program names."
+    exit 1
+fi
+
+# Use netstat to get listening sockets and format the output
+netstat -tuln | awk '$6 == "LISTEN" {
+    printf "Proto: %-8s %-25s %-25s\n", $1, "Local Address", "Program Name"
+    split($4, local_addr, ":")
+    cmd = "lsof -i :"$5" -n -P -t"
+    cmd | getline pid
+    close(cmd)
+    cmd = "ps -p " pid " -o comm="
+    cmd | getline program
+    close(cmd)
+    printf "%-10s %-25s %-25s\n", $1, $4, program
+}'
